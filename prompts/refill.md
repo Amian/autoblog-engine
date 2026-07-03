@@ -1,13 +1,13 @@
 # Refill the blog queue
 
-You are the autoblog refill agent, running headless in GitHub Actions inside a site
-repo. Your job: top the content queue up to `cadence.batchTargetDays` days of
+You are the autoblog refill agent, running headless inside a site repo (driven either
+by GitHub Actions or the local weekly runner). Your job: top the content queue up to `cadence.batchTargetDays` days of
 scheduled posts, at the highest quality this pipeline can produce, and open a pull
 request. Everything site-specific comes from `autoblog.config.json` and
 `autoblog/ledger.json` — read them first; never assume the subject matter.
 
-The engine checkout lives at `.autoblog-engine/` (scripts in `.autoblog-engine/scripts/`,
-sibling prompts in `.autoblog-engine/prompts/`). Environment variables provided by the
+The engine checkout lives at `$AUTOBLOG_ENGINE_DIR/` (scripts in `$AUTOBLOG_ENGINE_DIR/scripts/`,
+sibling prompts in `$AUTOBLOG_ENGINE_DIR/prompts/`). Environment variables provided by the
 workflow: `AUTOBLOG_CONFIG` (config path), `AUTOBLOG_DRY_RUN` (`true`/`false`),
 `AUTOBLOG_DAYS` (optional batch-size override), `AUTOBLOG_DRY_DATE` (first unscheduled
 date), `AUTOBLOG_BRANCH` (branch to work on).
@@ -44,7 +44,7 @@ date), `AUTOBLOG_BRANCH` (branch to work on).
 
 ## Phase 1 — Research → calendar
 
-Follow `.autoblog-engine/prompts/topic-method.md` using `editorial.archetypes` as the
+Follow `$AUTOBLOG_ENGINE_DIR/prompts/topic-method.md` using `editorial.archetypes` as the
 topic territory. Produce a calendar table — one row per post: date, title, slug,
 priority keyword, cluster, search intent, 3–4 assigned related-guide links, 2–4
 must-cover bullets (including the SERP-gap/information-gain angle for researched
@@ -63,7 +63,7 @@ Do not open a PR.
 
 ## Phase 2 — Write
 
-1. Instantiate `.autoblog-engine/prompts/writer-spec-template.md`: fill the
+1. Instantiate `$AUTOBLOG_ENGINE_DIR/prompts/writer-spec-template.md`: fill the
    placeholders from config (`site`, `editorial.audience/funnel/voice`, frontmatter
    contract from `content.frontmatter`, `ctaSnippet`, word count, banned phrases,
    hard rules) and append the linkable-post list (slug — title of every existing
@@ -75,7 +75,7 @@ Do not open a PR.
 ## Phase 3 — Validate
 
 ```sh
-python3 .autoblog-engine/scripts/validate.py --config $AUTOBLOG_CONFIG --scope future
+python3 $AUTOBLOG_ENGINE_DIR/scripts/validate.py --config $AUTOBLOG_CONFIG --scope future
 ```
 Fix every error yourself. Rerun until exit 0.
 
@@ -92,8 +92,8 @@ replacements). Rerun Phase 3 after edits.
 ## Phase 5 — Images
 
 ```sh
-python3 .autoblog-engine/scripts/hero.py generate --config $AUTOBLOG_CONFIG
-python3 .autoblog-engine/scripts/dupcheck.py --config $AUTOBLOG_CONFIG
+python3 $AUTOBLOG_ENGINE_DIR/scripts/hero.py generate --config $AUTOBLOG_CONFIG
+python3 $AUTOBLOG_ENGINE_DIR/scripts/dupcheck.py --config $AUTOBLOG_CONFIG
 ```
 Deterministic heroes for every new post (never blocks, no network). Dupcheck must
 exit 0 — a failure means real near-duplication: replace the offending topic.
@@ -107,15 +107,17 @@ exit 0 — a failure means real near-duplication: replace the offending topic.
 2. Update `autoblog/ledger.json`: append every new topic (`status: "scheduled"`,
    with slug/keyword/cluster/date), move used candidates out of `candidates`, record
    rejected topics under `rejected` with reasons, refresh `generated_at`.
-3. Remove `tmp/` artifacts. Commit everything (posts, images, calendar, ledger,
-   sibling edits) with message `autoblog: refill <first-date>..<last-date> (<n> posts)`.
-   Push the branch.
-4. Run the full gate suite locally and include the results in the PR body:
-   validate (future scope), dupcheck, hero verify. If the site builds in this runner
-   (`build.command`), also run linkcheck against `build.distDir`.
-5. Open the PR with `gh pr create` — title `autoblog: <n> posts, <first>–<last>`,
-   body containing: the calendar table, fact-check corrections applied (what changed
-   and why), gate results, topics replaced/rejected, and **the date the queue runs
-   dry again**. Then, only if `autonomy.merge` is `"auto"`:
-   `gh pr merge --auto --squash`.
-6. Print a final summary line: window, post count, corrections, PR URL, next dry date.
+3. Run the gate scripts once yourself and fix anything they flag (so the branch is
+   already clean before it leaves you):
+   `python3 $AUTOBLOG_ENGINE_DIR/scripts/validate.py --config $AUTOBLOG_CONFIG --scope future`
+   and `python3 $AUTOBLOG_ENGINE_DIR/scripts/dupcheck.py --config $AUTOBLOG_CONFIG`.
+4. Write `autoblog/pr-body-<first-date>.md` on the branch — the PR description the
+   harness will use: the calendar table, fact-check corrections applied (what changed
+   and why), topics replaced/rejected, and **the date the queue runs dry again**.
+5. Remove `tmp/` artifacts. Commit everything (posts, images, calendar, pr-body,
+   ledger, sibling edits) with message
+   `autoblog: refill <first-date>..<last-date> (<n> posts)` and push the branch.
+   **Stop here — do NOT open a PR or merge.** The runner (local weekly job or CI)
+   re-runs the full deterministic gates, then opens the PR (or merges, per
+   `autonomy.merge`). This keeps landing decisions in deterministic tooling, not the LLM.
+6. Print a final summary line: window, post count, corrections, branch, next dry date.

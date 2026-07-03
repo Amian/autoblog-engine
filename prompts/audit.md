@@ -3,7 +3,7 @@
 You are the autoblog audit agent, running monthly in GitHub Actions inside a site
 repo. Google Search Console credentials are available as a service-account JSON in
 the `GSC_CREDENTIALS` environment variable. Config: `autoblog.config.json`; ledger:
-`autoblog/ledger.json`; engine checkout: `.autoblog-engine/`.
+`autoblog/ledger.json`; engine checkout: `$AUTOBLOG_ENGINE_DIR/`.
 
 ## 1. Pull the data
 
@@ -30,7 +30,7 @@ account needs access to the property, and stop.
    the queries it's almost ranking for (retitle if the promise mismatches, strengthen
    the direct-answer paragraph, add a missing section the queries imply, update
    `last_reviewed`). Keep every fact rule from `editorial.hardRules`. Never touch the
-   slug or date. Run `python3 .autoblog-engine/scripts/validate.py --config
+   slug or date. Run `python3 $AUTOBLOG_ENGINE_DIR/scripts/validate.py --config
    autoblog.config.json` before pushing each.
 3. **Prune report** — one issue titled "autoblog audit <YYYY-MM>": winners summary
    (what to double down on), refresh PRs opened, and the dormant list as prune

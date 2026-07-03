@@ -113,6 +113,7 @@ jobs:
         id: claude
         uses: anthropics/claude-code-action@v1
         env:
+          AUTOBLOG_ENGINE_DIR: .autoblog-engine
           AUTOBLOG_CONFIG: ${{ inputs.config_path }}
           AUTOBLOG_DRY_RUN: ${{ inputs.dry_run }}
           AUTOBLOG_DAYS: ${{ inputs.days }}

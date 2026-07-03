@@ -66,6 +66,7 @@ jobs:
       - name: Run the audit
         uses: anthropics/claude-code-action@v1
         env:
+          AUTOBLOG_ENGINE_DIR: .autoblog-engine
           AUTOBLOG_CONFIG: ${{ inputs.config_path }}
           GSC_CREDENTIALS: ${{ secrets.GSC_CREDENTIALS }}
           GH_TOKEN: ${{ github.token }}

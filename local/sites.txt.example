@@ -1,0 +1,6 @@
+# autoblog site registry — one site-repo ABSOLUTE path per line.
+# Each must contain autoblog.config.json. Lines starting with # are ignored.
+# Add a site = add a line. That's the whole "onboard a new app to the weekly job".
+
+/Users/anum/Development/AntiqueIdentifierWebsite
+# /Users/anum/Development/SomeOtherApp
