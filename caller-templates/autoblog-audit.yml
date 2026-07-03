@@ -1,0 +1,18 @@
+name: autoblog audit
+
+# Optional — skips gracefully until a GSC_CREDENTIALS secret exists.
+
+on:
+  schedule:
+    - cron: "31 6 3 * *" # monthly, 3rd at 06:31 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  audit:
+    uses: Amian/autoblog-engine/.github/workflows/audit.yml@v1
+    secrets: inherit

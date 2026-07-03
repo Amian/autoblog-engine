@@ -1,0 +1,59 @@
+name: autoblog watchdog (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      config_path:
+        type: string
+        default: "autoblog.config.json"
+      engine_ref:
+        type: string
+        default: "v1"
+
+jobs:
+  watchdog:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: Amian/autoblog-engine
+          ref: ${{ inputs.engine_ref }}
+          path: .autoblog-engine
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - id: runway
+        run: python3 .autoblog-engine/scripts/runway.py --config "${{ inputs.config_path }}"
+      - name: Raise or clear the alarm
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BELOW: ${{ steps.runway.outputs.below_min }}
+          DAYS: ${{ steps.runway.outputs.days }}
+          DRY: ${{ steps.runway.outputs.dry_date }}
+        run: |
+          set -euo pipefail
+          gh label create autoblog-watchdog --color D93F0B \
+            --description "blog queue runway alarm" --force
+          existing=$(gh issue list --label autoblog-watchdog --state open \
+            --json number --jq '.[0].number // empty')
+          if [ "$BELOW" = "true" ]; then
+            body="The scheduled-post queue has **${DAYS} day(s)** of runway left and runs dry on **${DRY}**.
+
+          The weekly refill should have topped this up — check the latest \`autoblog-refill\` run for failures (expired \`CLAUDE_CODE_OAUTH_TOKEN\`, repeated gate rejections, or disabled cron). See the engine RUNBOOK: https://github.com/Amian/autoblog-engine/blob/main/docs/RUNBOOK.md"
+            if [ -n "$existing" ]; then
+              gh issue comment "$existing" --body "Still low: ${DAYS} day(s) left, dry on ${DRY}."
+            else
+              gh issue create --label autoblog-watchdog \
+                --title "⚠️ Blog queue runs dry on ${DRY}" --body "$body"
+            fi
+          else
+            if [ -n "$existing" ]; then
+              gh issue close "$existing" \
+                --comment "Queue healthy again: ${DAYS} days of runway (dry ${DRY})."
+            fi
+            echo "runway healthy: ${DAYS} days"
+          fi

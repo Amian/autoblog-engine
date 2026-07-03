@@ -1,0 +1,14 @@
+name: autoblog watchdog
+
+on:
+  schedule:
+    - cron: "23 5 * * *" # daily 05:23 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  watchdog:
+    uses: Amian/autoblog-engine/.github/workflows/watchdog.yml@v1

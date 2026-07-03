@@ -52,12 +52,12 @@ Full detail: [ARCHITECTURE.md](ARCHITECTURE.md).
 ## Rollout phases
 
 - [x] **Phase 0 — repo + docs**: this repo, on GitHub, public.
-- [ ] **Phase 1 — scripts**: `runway / validate / dupcheck / linkcheck / hero / ledger`,
-      tested locally against the real antiques corpus (140 posts; runway must report
-      dry date 2026-08-10; validate + dupcheck must pass the existing corpus — that
-      calibrates false positives).
-- [ ] **Phase 2 — prompts + workflows**: `prompts/*`, 5 reusable workflows, caller
-      templates, config JSON Schema. Tag `v1`.
+- [x] **Phase 1 — scripts**: `runway / validate / dupcheck / linkcheck / hero / ledger`,
+      tested locally against the real antiques corpus (130 posts; runway reported
+      dry date 2026-08-10 correctly; validate `--scope future` 0 errors, dupcheck max
+      overlap 0.047, linkcheck 645 pages 0 broken — false positives calibrated).
+- [x] **Phase 2 — prompts + workflows**: `prompts/*`, 5 reusable workflows, caller
+      templates, config JSON Schema. Tagged `v1`.
 - [ ] **Phase 3 — pilot onboarding**: config + seeded ledger + 3 caller workflows in
       the antiques repo; user adds the token secret; gates green on a no-op PR;
       dry-run refill green via `workflow_dispatch`.

@@ -1,0 +1,32 @@
+name: autoblog refill
+
+on:
+  schedule:
+    - cron: "17 4 * * 1" # Mondays 04:17 UTC (off the hour — GitHub delays :00 crons)
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "refill even when the queue is healthy"
+        type: boolean
+        default: false
+      dry_run:
+        description: "calendar + 2 posts on a branch, no PR"
+        type: boolean
+        default: false
+      days:
+        description: "override batch size (days)"
+        type: string
+        default: ""
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refill:
+    uses: Amian/autoblog-engine/.github/workflows/refill.yml@v1
+    with:
+      force: ${{ github.event_name == 'workflow_dispatch' && inputs.force || false }}
+      dry_run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
+      days: ${{ github.event_name == 'workflow_dispatch' && inputs.days || '' }}
+    secrets: inherit

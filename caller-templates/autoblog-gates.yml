@@ -1,0 +1,17 @@
+name: autoblog gates
+
+on:
+  pull_request:
+    # EDIT: first path = your content dir (e.g. _posts/** or src/content/blog/**)
+    paths:
+      - "_posts/**"
+      - "autoblog/**"
+      - "autoblog.config.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gates:
+    uses: Amian/autoblog-engine/.github/workflows/gates.yml@v1

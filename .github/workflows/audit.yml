@@ -1,0 +1,74 @@
+name: autoblog audit (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      config_path:
+        type: string
+        default: "autoblog.config.json"
+      model:
+        type: string
+        default: "claude-opus-4-8"
+      engine_ref:
+        type: string
+        default: "v1"
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN:
+        required: true
+      GSC_CREDENTIALS:
+        description: "Search Console service-account JSON; audit skips without it"
+        required: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      has_gsc: ${{ steps.probe.outputs.has_gsc }}
+    steps:
+      - id: probe
+        env:
+          GSC: ${{ secrets.GSC_CREDENTIALS }}
+        run: |
+          if [ -n "$GSC" ]; then
+            echo "has_gsc=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_gsc=false" >> "$GITHUB_OUTPUT"
+            echo "No GSC_CREDENTIALS secret — audit skipped (this is fine; add the secret to enable it)."
+          fi
+
+  audit:
+    needs: check
+    if: needs.check.outputs.has_gsc == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/checkout@v4
+        with:
+          repository: Amian/autoblog-engine
+          ref: ${{ inputs.engine_ref }}
+          path: .autoblog-engine
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run the audit
+        uses: anthropics/claude-code-action@v1
+        env:
+          AUTOBLOG_CONFIG: ${{ inputs.config_path }}
+          GSC_CREDENTIALS: ${{ secrets.GSC_CREDENTIALS }}
+          GH_TOKEN: ${{ github.token }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: >-
+            --model ${{ inputs.model }}
+            --allowedTools "Bash,Read,Write,Edit,Glob,Grep,WebSearch,WebFetch,Task,TodoWrite"
+          prompt: |
+            Read .autoblog-engine/prompts/audit.md and execute it exactly.
+            Config: ${{ inputs.config_path }}. GSC service-account JSON is in the
+            GSC_CREDENTIALS env var. Use `gh` (GH_TOKEN is set) for PRs and issues.

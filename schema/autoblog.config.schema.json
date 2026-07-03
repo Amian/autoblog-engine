@@ -1,0 +1,150 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "autoblog.config.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "site", "adapter", "content", "editorial", "build"],
+  "properties": {
+    "version": { "const": 1 },
+    "site": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "url"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "url": { "type": "string", "pattern": "^https://" },
+        "language": { "type": "string", "default": "en" }
+      }
+    },
+    "adapter": { "enum": ["jekyll", "astro-content", "plain-md"] },
+    "content": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dir"],
+      "properties": {
+        "dir": { "type": "string", "minLength": 1 },
+        "filenamePattern": { "type": "string", "pattern": "\\{slug\\}" },
+        "urlPattern": { "type": "string", "pattern": "^/.*\\{slug\\}" },
+        "frontmatter": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "required": { "type": "array", "items": { "type": "string" } },
+            "constant": { "type": "object" },
+            "dateField": { "type": "string" },
+            "clusterField": { "type": "string" },
+            "imageField": { "type": "string" },
+            "descriptionMinChars": { "type": "integer", "minimum": 0 },
+            "descriptionMaxChars": { "type": "integer", "minimum": 40 }
+          }
+        },
+        "ctaSnippet": { "type": "string" },
+        "clustersFile": { "type": "string" }
+      }
+    },
+    "editorial": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["audience", "funnel", "voice", "archetypes"],
+      "properties": {
+        "audience": { "type": "string", "minLength": 20 },
+        "funnel": { "type": "string", "minLength": 20 },
+        "voice": { "type": "string", "minLength": 20 },
+        "archetypes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "description"],
+            "properties": {
+              "name": { "type": "string" },
+              "description": { "type": "string" },
+              "examples": { "type": "array", "items": { "type": "string" } },
+              "share": { "type": "number", "minimum": 0, "maximum": 1 }
+            }
+          }
+        },
+        "commercialPostsPerWeek": { "type": "number", "minimum": 0 },
+        "seasonalLeadWeeks": {
+          "type": "array", "items": { "type": "integer" }, "minItems": 2, "maxItems": 2
+        },
+        "wordCount": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "min": { "type": "integer", "minimum": 100 },
+            "target": { "type": "integer", "minimum": 100 }
+          }
+        },
+        "bannedPhrases": { "type": "array", "items": { "type": "string" } },
+        "hardRules": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "cadence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "postsPerDayMax": { "type": "integer", "minimum": 1, "maximum": 3 },
+        "batchTargetDays": { "type": "integer", "minimum": 7, "maximum": 62 },
+        "refillThresholdDays": { "type": "integer", "minimum": 7, "maximum": 62 }
+      }
+    },
+    "quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "minRunwayDays": { "type": "integer", "minimum": 1 },
+        "dupContainmentThreshold": { "type": "number", "minimum": 0.1, "maximum": 1 },
+        "factCheck": { "type": "boolean" }
+      }
+    },
+    "images": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": { "enum": ["template", "off"] },
+        "brandColors": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+          "minItems": 1, "maxItems": 2
+        },
+        "textColor": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "size": {
+          "type": "array", "items": { "type": "integer", "minimum": 200 },
+          "minItems": 2, "maxItems": 2
+        },
+        "fontPath": { "type": "string" },
+        "verifyWithinDays": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "autonomy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": { "merge": { "enum": ["review", "auto"] } }
+    },
+    "models": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "writer": { "type": "string" },
+        "checker": { "type": "string" }
+      }
+    },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["command", "distDir", "setup"],
+      "properties": {
+        "command": { "type": "string", "minLength": 1 },
+        "distDir": { "type": "string", "minLength": 1 },
+        "setup": { "enum": ["ruby-bundler", "node-pnpm", "none"] }
+      }
+    },
+    "audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": { "gsc": { "enum": ["auto", "off"] } }
+    }
+  }
+}

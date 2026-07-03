@@ -1,0 +1,123 @@
+name: autoblog refill (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      config_path:
+        type: string
+        default: "autoblog.config.json"
+      force:
+        description: "refill even when the queue is healthy"
+        type: boolean
+        default: false
+      dry_run:
+        description: "calendar + 2 posts on a branch, no PR"
+        type: boolean
+        default: false
+      days:
+        description: "override cadence.batchTargetDays"
+        type: string
+        default: ""
+      model:
+        type: string
+        default: "claude-opus-4-8"
+      engine_ref:
+        type: string
+        default: "v1"
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN:
+        required: true
+      AUTOBLOG_PAT:
+        description: "optional PAT so the refill PR triggers the gates workflow"
+        required: false
+
+concurrency:
+  group: autoblog-refill-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  runway:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      needs_refill: ${{ steps.runway.outputs.needs_refill }}
+      dry_date: ${{ steps.runway.outputs.dry_date }}
+      days: ${{ steps.runway.outputs.days }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: Amian/autoblog-engine
+          ref: ${{ inputs.engine_ref }}
+          path: .autoblog-engine
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - id: runway
+        run: python3 .autoblog-engine/scripts/runway.py --config "${{ inputs.config_path }}"
+
+  generate:
+    needs: runway
+    if: ${{ inputs.force || needs.runway.outputs.needs_refill == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/checkout@v4
+        with:
+          repository: Amian/autoblog-engine
+          ref: ${{ inputs.engine_ref }}
+          path: .autoblog-engine
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --quiet Pillow
+      - id: cfg
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import sys
+          sys.path.insert(0, ".autoblog-engine/scripts")
+          from _common import load_config
+          cfg = load_config("${{ inputs.config_path }}")
+          print(f"setup={cfg['build']['setup']}")
+          PY
+      - if: steps.cfg.outputs.setup == 'ruby-bundler'
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+      - if: steps.cfg.outputs.setup == 'node-pnpm'
+        uses: pnpm/action-setup@v4
+      - if: steps.cfg.outputs.setup == 'node-pnpm'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+      - if: steps.cfg.outputs.setup == 'node-pnpm'
+        run: pnpm install --frozen-lockfile
+      - name: Refill the queue
+        uses: anthropics/claude-code-action@v1
+        env:
+          AUTOBLOG_CONFIG: ${{ inputs.config_path }}
+          AUTOBLOG_DRY_RUN: ${{ inputs.dry_run }}
+          AUTOBLOG_DAYS: ${{ inputs.days }}
+          AUTOBLOG_DRY_DATE: ${{ needs.runway.outputs.dry_date }}
+          AUTOBLOG_BRANCH: autoblog/refill-${{ needs.runway.outputs.dry_date }}
+          GH_TOKEN: ${{ secrets.AUTOBLOG_PAT || github.token }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: >-
+            --model ${{ inputs.model }}
+            --allowedTools "Bash,Read,Write,Edit,Glob,Grep,WebSearch,WebFetch,Task,TodoWrite"
+          prompt: |
+            Read .autoblog-engine/prompts/refill.md and execute it exactly.
+            Environment (also exported as env vars): config=${{ inputs.config_path }},
+            dry_run=${{ inputs.dry_run }}, days_override=${{ inputs.days || 'none' }},
+            queue dry date=${{ needs.runway.outputs.dry_date }},
+            branch=autoblog/refill-${{ needs.runway.outputs.dry_date }}.
+            Use `gh` (GH_TOKEN is set) for the pull request.

@@ -1,0 +1,17 @@
+name: autoblog publish
+
+# Only for sites WITHOUT their own scheduled rebuild. Requires the
+# CLOUDFLARE_DEPLOY_HOOK secret; INDEXNOW_KEY is optional.
+
+on:
+  schedule:
+    - cron: "7 6 * * *" # daily 06:07 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    uses: Amian/autoblog-engine/.github/workflows/publish.yml@v1
+    secrets: inherit

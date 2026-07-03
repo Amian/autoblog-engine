@@ -1,0 +1,71 @@
+name: autoblog gates (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      config_path:
+        type: string
+        default: "autoblog.config.json"
+      engine_ref:
+        type: string
+        default: "v1"
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: Amian/autoblog-engine
+          ref: ${{ inputs.engine_ref }}
+          path: .autoblog-engine
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --quiet Pillow jsonschema
+      - name: Config schema
+        run: |
+          python3 - <<'PY'
+          import json, jsonschema
+          schema = json.load(open(".autoblog-engine/schema/autoblog.config.schema.json"))
+          cfg = json.load(open("${{ inputs.config_path }}"))
+          jsonschema.validate(cfg, schema)
+          print("config schema: OK")
+          PY
+      - name: Validate queue posts
+        run: python3 .autoblog-engine/scripts/validate.py --config "${{ inputs.config_path }}" --scope future
+      - name: Duplicate check
+        run: python3 .autoblog-engine/scripts/dupcheck.py --config "${{ inputs.config_path }}" --scope future
+      - name: Hero images present
+        run: python3 .autoblog-engine/scripts/hero.py verify --config "${{ inputs.config_path }}"
+      - id: cfg
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import sys
+          sys.path.insert(0, ".autoblog-engine/scripts")
+          from _common import load_config
+          cfg = load_config("${{ inputs.config_path }}")
+          print(f"setup={cfg['build']['setup']}")
+          print(f"command={cfg['build']['command']}")
+          print(f"dist={cfg['build']['distDir']}")
+          PY
+      - if: steps.cfg.outputs.setup == 'ruby-bundler'
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+      - if: steps.cfg.outputs.setup == 'node-pnpm'
+        uses: pnpm/action-setup@v4
+      - if: steps.cfg.outputs.setup == 'node-pnpm'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+      - if: steps.cfg.outputs.setup == 'node-pnpm'
+        run: pnpm install --frozen-lockfile
+      - name: Build site
+        run: ${{ steps.cfg.outputs.command }}
+      - name: Link check (full depth)
+        run: python3 .autoblog-engine/scripts/linkcheck.py --dist "${{ steps.cfg.outputs.dist }}"

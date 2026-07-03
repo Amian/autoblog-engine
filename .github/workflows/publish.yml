@@ -1,0 +1,64 @@
+name: autoblog publish (reusable)
+
+# Optional daily publish for sites without their own scheduled rebuild.
+# Deterministic: build check → deploy hook → IndexNow ping for posts due today.
+
+on:
+  workflow_call:
+    inputs:
+      config_path:
+        type: string
+        default: "autoblog.config.json"
+      engine_ref:
+        type: string
+        default: "v1"
+    secrets:
+      CLOUDFLARE_DEPLOY_HOOK:
+        required: true
+      INDEXNOW_KEY:
+        description: "optional; enables IndexNow pings for newly published posts"
+        required: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: Amian/autoblog-engine
+          ref: ${{ inputs.engine_ref }}
+          path: .autoblog-engine
+      - name: Trigger deploy
+        env:
+          HOOK: ${{ secrets.CLOUDFLARE_DEPLOY_HOOK }}
+        run: curl -fsS -X POST "$HOOK" > /dev/null && echo "deploy triggered"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: IndexNow ping for posts due today
+        env:
+          INDEXNOW_KEY: ${{ secrets.INDEXNOW_KEY }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys, urllib.request
+          sys.path.insert(0, ".autoblog-engine/scripts")
+          from _common import iter_posts, load_config, today, url_for
+          key = os.environ.get("INDEXNOW_KEY", "")
+          cfg = load_config("${{ inputs.config_path }}")
+          urls = [cfg["site"]["url"].rstrip("/") + url_for(cfg, p.slug)
+                  for p in iter_posts(cfg, __import__("pathlib").Path("."))
+                  if p.date == today() and p.slug]
+          if not urls:
+              print("no posts due today"); raise SystemExit
+          if not key:
+              print(f"{len(urls)} post(s) due today; no INDEXNOW_KEY secret — skipping ping"); raise SystemExit
+          host = cfg["site"]["url"].split("//", 1)[1].strip("/")
+          payload = json.dumps({"host": host, "key": key, "urlList": urls}).encode()
+          req = urllib.request.Request("https://api.indexnow.org/indexnow", payload,
+                                       {"Content-Type": "application/json; charset=utf-8"})
+          with urllib.request.urlopen(req, timeout=30) as resp:
+              print(f"IndexNow {resp.status} for {len(urls)} url(s): {urls}")
+          PY
