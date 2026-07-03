@@ -27,7 +27,11 @@ on:
         default: "v1"
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN:
-        required: true
+        description: "Claude subscription token (claude setup-token). One of this or ANTHROPIC_API_KEY is required."
+        required: false
+      ANTHROPIC_API_KEY:
+        description: "Anthropic API key — reliable auth for CI; used in preference to the OAuth token when set."
+        required: false
       AUTOBLOG_PAT:
         description: "optional PAT so the refill PR triggers the gates workflow"
         required: false
@@ -116,7 +120,8 @@ jobs:
           AUTOBLOG_BRANCH: autoblog/refill-${{ needs.runway.outputs.dry_date }}
           GH_TOKEN: ${{ secrets.AUTOBLOG_PAT || github.token }}
         with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.ANTHROPIC_API_KEY == '' && secrets.CLAUDE_CODE_OAUTH_TOKEN || '' }}
           claude_args: >-
             --model ${{ inputs.model }}
             --allowedTools "Bash,Read,Write,Edit,Glob,Grep,WebSearch,WebFetch,Task,TodoWrite"

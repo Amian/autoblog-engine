@@ -15,7 +15,11 @@ on:
         default: "v1"
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN:
-        required: true
+        description: "Claude subscription token. One of this or ANTHROPIC_API_KEY is required."
+        required: false
+      ANTHROPIC_API_KEY:
+        description: "Anthropic API key — used in preference to the OAuth token when set."
+        required: false
       GSC_CREDENTIALS:
         description: "Search Console service-account JSON; audit skips without it"
         required: false
@@ -66,7 +70,8 @@ jobs:
           GSC_CREDENTIALS: ${{ secrets.GSC_CREDENTIALS }}
           GH_TOKEN: ${{ github.token }}
         with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.ANTHROPIC_API_KEY == '' && secrets.CLAUDE_CODE_OAUTH_TOKEN || '' }}
           claude_args: >-
             --model ${{ inputs.model }}
             --allowedTools "Bash,Read,Write,Edit,Glob,Grep,WebSearch,WebFetch,Task,TodoWrite"
