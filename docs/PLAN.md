@@ -58,9 +58,12 @@ Full detail: [ARCHITECTURE.md](ARCHITECTURE.md).
       overlap 0.047, linkcheck 645 pages 0 broken — false positives calibrated).
 - [x] **Phase 2 — prompts + workflows**: `prompts/*`, 5 reusable workflows, caller
       templates, config JSON Schema. Tagged `v1`.
-- [ ] **Phase 3 — pilot onboarding**: config + seeded ledger + 3 caller workflows in
-      the antiques repo; user adds the token secret; gates green on a no-op PR;
-      dry-run refill green via `workflow_dispatch`.
+- [x] **Phase 3 — pilot onboarding** (machine side done 2026-07-03): config + seeded
+      ledger (129 covered, 12 candidates) + 3 caller workflows pushed to the antiques
+      repo; watchdog run green; gates run green in CI on the real corpus (caught +
+      fixed the ruby-version gap → `build.rubyVersion`). REMAINING (user):
+      add `CLAUDE_CODE_OAUTH_TOKEN` secret (`claude setup-token`), optionally
+      `AUTOBLOG_PAT`, install the Claude GitHub App — then dispatch a `dry_run` refill.
 - [ ] **Phase 4 — first real batch**: refill with `force: true` → PR → gates green →
       human review/merge → posts publish on the existing rebuild → verify live URLs.
 - [ ] **Phase 5 — later**: `astro-content` adapter + monorepo site enablement
