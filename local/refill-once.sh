@@ -18,6 +18,11 @@ ENGINE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOGDIR="${AUTOBLOG_LOGDIR:-$HOME/.autoblog/logs}"
 mkdir -p "$LOGDIR"
 
+# Optional auth/config overrides. Put `export ANTHROPIC_API_KEY=...` here to run the
+# generator on a metered API key instead of the interactive subscription (the reliable
+# path if headless `claude -p` can't use your subscription).
+[ -f "$HOME/.autoblog/env" ] && . "$HOME/.autoblog/env"
+
 SITE="" ; FORCE=0 ; DRY=0 ; AUTO=0 ; MODEL="opus"
 while [ $# -gt 0 ]; do
   case "$1" in
