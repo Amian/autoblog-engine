@@ -19,8 +19,9 @@ on:
         type: string
         default: ""
       model:
+        description: "CLI alias (opus|sonnet|haiku) or full model id"
         type: string
-        default: "claude-opus-4-8"
+        default: "opus"
       engine_ref:
         type: string
         default: "v1"
@@ -105,6 +106,7 @@ jobs:
       - if: steps.cfg.outputs.setup == 'node-pnpm'
         run: pnpm install --frozen-lockfile
       - name: Refill the queue
+        id: claude
         uses: anthropics/claude-code-action@v1
         env:
           AUTOBLOG_CONFIG: ${{ inputs.config_path }}
@@ -125,3 +127,25 @@ jobs:
             queue dry date=${{ needs.runway.outputs.dry_date }},
             branch=autoblog/refill-${{ needs.runway.outputs.dry_date }}.
             Use `gh` (GH_TOKEN is set) for the pull request.
+      - name: Fail if Claude errored
+        if: always()
+        env:
+          EXEC_FILE: ${{ steps.claude.outputs.execution_file }}
+        run: |
+          if [ -z "$EXEC_FILE" ] || [ ! -f "$EXEC_FILE" ]; then
+            echo "No execution file from the Claude step — treating as failure."
+            exit 1
+          fi
+          python3 - <<'PY'
+          import json, os, sys
+          data = json.load(open(os.environ["EXEC_FILE"]))
+          msgs = data if isinstance(data, list) else [data]
+          result = next((m for m in reversed(msgs) if m.get("type") == "result"), None)
+          if result is None:
+              sys.exit("No result message in execution output — failing.")
+          if result.get("is_error"):
+              print(json.dumps(result, indent=2)[:2000])
+              sys.exit("Claude reported is_error=true (see result above) — failing the job.")
+          print(f"Claude OK: {result.get('num_turns')} turns, "
+                f"${result.get('total_cost_usd')}, {result.get('duration_ms')}ms")
+          PY

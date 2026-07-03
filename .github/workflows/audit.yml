@@ -7,8 +7,9 @@ on:
         type: string
         default: "autoblog.config.json"
       model:
+        description: "CLI alias (opus|sonnet|haiku) or full model id"
         type: string
-        default: "claude-opus-4-8"
+        default: "opus"
       engine_ref:
         type: string
         default: "v1"
