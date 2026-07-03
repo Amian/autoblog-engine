@@ -76,7 +76,9 @@ fields are rejected (typos should fail loudly).
   "build": {
     "command": "bundle exec jekyll build --future --destination tmp/_site_future",
     "distDir": "tmp/_site_future",
-    "setup": "ruby-bundler"                 // ruby-bundler | node-pnpm | none — CI toolchain to install
+    "setup": "ruby-bundler",                // ruby-bundler | node-pnpm | none — CI toolchain to install
+    "rubyVersion": "3.3",                   // used by setup: ruby-bundler (default 3.3)
+    "nodeVersion": "22"                     // used by setup: node-pnpm (default 22)
   },
 
   "audit": { "gsc": "auto" }                // auto = use GSC if GSC_CREDENTIALS secret exists, else skip

@@ -48,6 +48,7 @@ DEFAULTS = {
         "fontPath": "",
         "verifyWithinDays": 14,
     },
+    "build": {"rubyVersion": "3.3", "nodeVersion": "22"},
     "autonomy": {"merge": "review"},
     "models": {"writer": "best", "checker": "best"},
     "audit": {"gsc": "auto"},

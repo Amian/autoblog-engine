@@ -138,7 +138,9 @@
       "properties": {
         "command": { "type": "string", "minLength": 1 },
         "distDir": { "type": "string", "minLength": 1 },
-        "setup": { "enum": ["ruby-bundler", "node-pnpm", "none"] }
+        "setup": { "enum": ["ruby-bundler", "node-pnpm", "none"] },
+        "rubyVersion": { "type": "string" },
+        "nodeVersion": { "type": "string" }
       }
     },
     "audit": {

@@ -86,17 +86,20 @@ jobs:
           from _common import load_config
           cfg = load_config("${{ inputs.config_path }}")
           print(f"setup={cfg['build']['setup']}")
+          print(f"ruby={cfg['build']['rubyVersion']}")
+          print(f"node={cfg['build']['nodeVersion']}")
           PY
       - if: steps.cfg.outputs.setup == 'ruby-bundler'
         uses: ruby/setup-ruby@v1
         with:
+          ruby-version: ${{ steps.cfg.outputs.ruby }}
           bundler-cache: true
       - if: steps.cfg.outputs.setup == 'node-pnpm'
         uses: pnpm/action-setup@v4
       - if: steps.cfg.outputs.setup == 'node-pnpm'
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: ${{ steps.cfg.outputs.node }}
           cache: pnpm
       - if: steps.cfg.outputs.setup == 'node-pnpm'
         run: pnpm install --frozen-lockfile
