@@ -60,7 +60,7 @@ jobs:
 
   generate:
     needs: runway
-    if: ${{ inputs.force || needs.runway.outputs.needs_refill == 'true' }}
+    if: ${{ inputs.force || inputs.dry_run || needs.runway.outputs.needs_refill == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 300
     permissions:
