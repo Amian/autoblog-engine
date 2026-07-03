@@ -17,6 +17,10 @@ on:
         description: "override batch size (days)"
         type: string
         default: ""
+      model:
+        description: "CLI model alias (opus|sonnet|haiku)"
+        type: string
+        default: "opus"
 
 permissions:
   contents: write
@@ -30,4 +34,5 @@ jobs:
       force: ${{ github.event_name == 'workflow_dispatch' && inputs.force || false }}
       dry_run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
       days: ${{ github.event_name == 'workflow_dispatch' && inputs.days || '' }}
+      model: ${{ github.event_name == 'workflow_dispatch' && inputs.model || 'opus' }}
     secrets: inherit
