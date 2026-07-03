@@ -91,12 +91,18 @@ replacements). Rerun Phase 3 after edits.
 
 ## Phase 5 — Images
 
+If `images.ai.enabled` is true, follow `$AUTOBLOG_ENGINE_DIR/prompts/image-method.md`:
+generate a real photographic hero per post via the free-image (ChatGPT) skill,
+**review every card and regenerate anything not excellent**, and fall back to the
+deterministic template only when no excellent image can be produced. If
+`images.ai.enabled` is false, just run the template generator:
+`python3 $AUTOBLOG_ENGINE_DIR/scripts/hero.py generate --config $AUTOBLOG_CONFIG`.
+
+Then confirm no near-duplicates:
 ```sh
-python3 $AUTOBLOG_ENGINE_DIR/scripts/hero.py generate --config $AUTOBLOG_CONFIG
 python3 $AUTOBLOG_ENGINE_DIR/scripts/dupcheck.py --config $AUTOBLOG_CONFIG
 ```
-Deterministic heroes for every new post (never blocks, no network). Dupcheck must
-exit 0 — a failure means real near-duplication: replace the offending topic.
+Dupcheck must exit 0 — a failure means real near-duplication: replace the offending topic.
 
 ## Phase 6 — Ship
 

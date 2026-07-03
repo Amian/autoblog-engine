@@ -115,7 +115,17 @@
           "minItems": 2, "maxItems": 2
         },
         "fontPath": { "type": "string" },
-        "verifyWithinDays": { "type": "integer", "minimum": 1 }
+        "verifyWithinDays": { "type": "integer", "minimum": 1 },
+        "ai": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "style": { "type": "string" },
+            "negative": { "type": "array", "items": { "type": "string" } },
+            "reviewMaxAttempts": { "type": "integer", "minimum": 1, "maximum": 6 }
+          }
+        }
       }
     },
     "autonomy": {

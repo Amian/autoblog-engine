@@ -66,7 +66,13 @@ fields are rejected (typos should fail loudly).
     "textColor": "#f8f5ee",
     "size": [1200, 630],
     "fontPath": "",                         // optional TTF path; auto-discovers system fonts if empty
-    "verifyWithinDays": 14                  // gates: posts publishing within N days must have an image
+    "verifyWithinDays": 14,                 // gates: posts publishing within N days must have an image
+    "ai": {                                 // real photographic heroes via the free-image (ChatGPT) skill
+      "enabled": true,                      // false → template only (no ChatGPT automation)
+      "style": "warm editorial photograph, natural window light, shallow depth of field",
+      "negative": ["magnifying glass", "loupe", "text overlays", "watermark"],
+      "reviewMaxAttempts": 3                // regenerate a card up to N times until it's excellent, else template fallback
+    }
   },
 
   "autonomy": { "merge": "review" },        // review | auto — the training-wheels flag
@@ -100,6 +106,15 @@ fields are rejected (typos should fail loudly).
 - **`models`**: "best" is a policy, not a model id — the refill prompt instructs the
   agent to use the most capable model its Agent tool offers and to stop (not
   downgrade) if usage limits hit mid-batch.
+- **`images.ai`** turns on real photographic heroes via the free-image (ChatGPT)
+  skill, with a mandatory review-and-regenerate loop (see `prompts/image-method.md`):
+  every generated card is inspected and anything short of excellent is regenerated up
+  to `reviewMaxAttempts`, else it falls back to the deterministic template so the
+  pipeline never blocks. `style` is the visual direction; `negative` lists things to
+  exclude (merged with `editorial.hardRules`). **Caveat:** free-image drives a real
+  ChatGPT browser session, so the automation browser must stay logged in — if it isn't,
+  the run logs it, uses template cards for that batch, and continues. Keep it off
+  (`enabled: false`) for sites where you can't maintain a logged-in ChatGPT session.
 - **Secrets are never in this file.** They live in the site repo's Actions secrets:
   `CLAUDE_CODE_OAUTH_TOKEN` (required), `CLOUDFLARE_DEPLOY_HOOK` (if using
   `publish.yml`), `GSC_CREDENTIALS` (optional, enables the audit).

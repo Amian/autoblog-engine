@@ -47,6 +47,12 @@ DEFAULTS = {
         "size": [1200, 630],
         "fontPath": "",
         "verifyWithinDays": 14,
+        "ai": {
+            "enabled": False,
+            "style": "",
+            "negative": [],
+            "reviewMaxAttempts": 3,
+        },
     },
     "build": {"rubyVersion": "3.3", "nodeVersion": "22"},
     "autonomy": {"merge": "review"},
