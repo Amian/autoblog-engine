@@ -11,8 +11,15 @@ prompt automates steps 2–5. Manual steps below.
   (posts must be date-gated: Jekyll `future: false`, or an SSG build filter).
 - Repo is on GitHub with Actions enabled.
 
-## 1. Secrets (the only human-required step)
-In the site repo → Settings → Secrets and variables → Actions:
+## 1. Human-required setup (two parts — both needed before refill works)
+
+**a. Install the Claude GitHub App** on the site repo — visit
+https://github.com/apps/claude and grant it access to this repo (or run `claude`
+locally and use `/install-github-app`). Without this, refill fails with
+"Claude Code is not installed on this repository". The OAuth token *authorizes*
+Claude; the App is what lets it *run* inside the repo's Actions. Both are required.
+
+**b. Secrets** — site repo → Settings → Secrets and variables → Actions:
 - `CLAUDE_CODE_OAUTH_TOKEN` — run `claude setup-token` locally, paste the token.
 - `CLOUDFLARE_DEPLOY_HOOK` — only if using the engine's `publish.yml`.
 - `GSC_CREDENTIALS` — optional; Search Console service-account JSON, enables audits.
