@@ -38,10 +38,18 @@ def mix(a: tuple, b: tuple, t: float) -> tuple:
     return tuple(round(a[i] + (b[i] - a[i]) * t) for i in range(3))
 
 
-def image_repo_path(repo: Path, fm_image: str) -> Path | None:
+def image_repo_path(repo: Path, fm_image: str, adapter: str = "") -> Path | None:
+    """Map a frontmatter image URL path to the repo file that serves it.
+
+    Jekyll/plain-md serve repo paths directly; Astro serves static assets from
+    public/ (URL /x.png = file public/x.png) — the adapter decides the prefix.
+    """
     if not fm_image or not str(fm_image).startswith("/"):
         return None
-    return repo / str(fm_image).lstrip("/")
+    rel = str(fm_image).lstrip("/")
+    if adapter == "astro-content":
+        return repo / "public" / rel
+    return repo / rel
 
 
 def load_font(cfg, size):
@@ -137,6 +145,7 @@ def main() -> int:
         print("images.mode = off — nothing to do")
         return 0
     repo = Path(args.repo)
+    adapter = cfg.get("adapter", "")
     image_field = cfg["content"]["frontmatter"]["imageField"]
     cluster_field = cfg["content"]["frontmatter"]["clusterField"]
     posts = [p for p in iter_posts(cfg, repo) if p.slug and (not args.slug or p.slug == args.slug)]
@@ -147,7 +156,7 @@ def main() -> int:
         for p in posts:
             if p.date > horizon:
                 continue
-            path = image_repo_path(repo, p.fm.get(image_field, ""))
+            path = image_repo_path(repo, p.fm.get(image_field, ""), adapter)
             if path is None:
                 print(f"ERROR {p.path.name}: no usable {image_field!r} frontmatter value")
                 missing += 1
@@ -159,7 +168,7 @@ def main() -> int:
 
     made = skipped = 0
     for p in posts:
-        path = image_repo_path(repo, p.fm.get(image_field, ""))
+        path = image_repo_path(repo, p.fm.get(image_field, ""), adapter)
         if path is None:
             print(f"warn  {p.path.name}: no usable {image_field!r} value, skipping")
             continue
