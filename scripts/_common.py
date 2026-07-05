@@ -215,6 +215,22 @@ def iter_posts(cfg: dict, repo: Path) -> list[Post]:
     return posts
 
 
+def image_repo_path(cfg: dict, repo: Path, fm_image: str) -> Path | None:
+    """Map a frontmatter image URL path to the repo file that serves it.
+
+    Jekyll/plain-md serve repo paths directly; Astro serves static assets from
+    public/ (URL /x.png = file public/x.png), so the adapter decides the prefix.
+    Shared by hero.py (generate/verify the floor card) and to_card.py (write the
+    AI card) so they can never disagree about where an image lives.
+    """
+    if not fm_image or not str(fm_image).startswith("/"):
+        return None
+    rel = str(fm_image).lstrip("/")
+    if cfg.get("adapter", "") == "astro-content":
+        return repo / "public" / rel
+    return repo / rel
+
+
 def today() -> date:
     return datetime.now(timezone.utc).date()
 

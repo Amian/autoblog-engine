@@ -17,17 +17,17 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from _common import iter_posts, load_config
+from _common import iter_posts, load_config, image_repo_path
 
 
 def post_image_path(cfg: dict, repo: Path, slug: str) -> Path:
     field = cfg["content"]["frontmatter"]["imageField"]
     for p in iter_posts(cfg, repo):
         if p.slug == slug:
-            val = str(p.fm.get(field, ""))
-            if not val.startswith("/"):
-                sys.exit(f"post {slug} has no usable {field!r} frontmatter path: {val!r}")
-            return repo / val.lstrip("/")
+            path = image_repo_path(cfg, repo, str(p.fm.get(field, "")))
+            if path is None:
+                sys.exit(f"post {slug} has no usable {field!r} frontmatter path: {p.fm.get(field)!r}")
+            return path
     sys.exit(f"no post with slug {slug!r} in {cfg['content']['dir']}")
 
 
