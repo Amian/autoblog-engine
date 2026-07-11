@@ -15,6 +15,7 @@ Checks per post:
     that publishes on or before this post's date  ← "never link forward in time"
 Corpus-wide:
   - at most cadence.postsPerDayMax posts per date
+  - at most cadence.postsPerWeek posts per ISO week (future posts only)
   - unique slugs
 
 Exit 0 = clean (warnings allowed), 1 = errors found, 2 = config/setup problem.
@@ -149,6 +150,17 @@ def main() -> int:
         # the day cap is queue discipline — history is grandfathered
         if d > now and len(names) > cap:
             print(f"ERROR {d}: {len(names)} posts on one day (max {cap}): {', '.join(names)}")
+            total_errors += 1
+    week_cap = cfg["cadence"]["postsPerWeek"]
+    by_week: dict = {}
+    for p in posts:
+        if p.date > now:
+            by_week.setdefault(p.date.isocalendar()[:2], []).append(p.path.name)
+    for wk, names in sorted(by_week.items()):
+        # the week cap is queue discipline too — history is grandfathered
+        if len(names) > week_cap:
+            print(f"ERROR week {wk[0]}-W{wk[1]:02d}: {len(names)} posts in one week "
+                  f"(max {week_cap}): {', '.join(sorted(names))}")
             total_errors += 1
     seen: dict = {}
     for p in posts:

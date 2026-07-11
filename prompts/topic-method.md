@@ -38,6 +38,11 @@ Judge every candidate on both axes; want both, not either:
 6. **Mix discipline**: ~`editorial.commercialPostsPerWeek` commercial/funnel posts per
    week, informational posts the rest; vary clusters day to day (no three consecutive
    posts from one cluster).
+6b. **Date spacing**: honor `cadence.postsPerWeek`. Below 7/week, spread each week's
+   posts evenly (3/week → Mon/Wed/Fri; 2/week → Tue/Fri) — a steady drip, never a
+   burst. Fewer, better-differentiated posts beat a daily flood: every slot must
+   still pass the two-axis test, and a slot with no strong topic is dropped, not
+   filled.
 7. **Link assignment**: give each post 3–4 related-guide links chosen from posts that
    will already be live on its publish date (existing posts, or batch posts dated
    earlier). Spread links so new posts also receive some.

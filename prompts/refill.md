@@ -38,8 +38,11 @@ date), `AUTOBLOG_BRANCH` (branch to work on).
 3. Read the clusters file (`content.clustersFile`) if configured — valid cluster
    slugs and any per-cluster guidance live there.
 4. Compute the window: start at `AUTOBLOG_DRY_DATE`, length `AUTOBLOG_DAYS` if set,
-   else `cadence.batchTargetDays`. Respect `cadence.postsPerDayMax` (a cadence of
-   1/day = one post per date, no gaps).
+   else `cadence.batchTargetDays`. Respect `cadence.postsPerDayMax` AND
+   `cadence.postsPerWeek`: at 7/week with 1/day that means one post per date, no
+   gaps; below 7/week, space the dates evenly through each week (e.g. 3/week →
+   Mon/Wed/Fri) so the queue drips steadily instead of bursting. Batch size is
+   `batchTargetDays × postsPerWeek ÷ 7` posts, not one per day.
 5. `git checkout -b $AUTOBLOG_BRANCH` (or check it out if it already exists — resume).
 
 ## Phase 1 — Research → calendar

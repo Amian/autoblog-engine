@@ -38,7 +38,7 @@ DEFAULTS = {
         "bannedPhrases": [],
         "hardRules": [],
     },
-    "cadence": {"postsPerDayMax": 1, "batchTargetDays": 21, "refillThresholdDays": 21},
+    "cadence": {"postsPerDayMax": 1, "postsPerWeek": 7, "batchTargetDays": 21, "refillThresholdDays": 21},
     "quality": {"minRunwayDays": 7, "dupContainmentThreshold": 0.5, "factCheck": True},
     "images": {
         "mode": "template",

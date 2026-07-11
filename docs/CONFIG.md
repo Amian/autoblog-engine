@@ -50,6 +50,7 @@ fields are rejected (typos should fail loudly).
 
   "cadence": {
     "postsPerDayMax": 1,                    // hard cap; gates enforce
+    "postsPerWeek": 3,                      // hard cap per ISO week; gates enforce (default 7 = daily allowed)
     "batchTargetDays": 21,                  // days of queue a refill aims to add
     "refillThresholdDays": 21               // refill runs only when runway drops below this
   },
