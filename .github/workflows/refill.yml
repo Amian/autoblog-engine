@@ -35,6 +35,12 @@ on:
       AUTOBLOG_PAT:
         description: "optional PAT so the refill PR triggers the gates workflow"
         required: false
+      DATAFORSEO_LOGIN:
+        description: "optional — enables real keyword volume/difficulty in topic research (keywords.py vet)"
+        required: false
+      DATAFORSEO_PASSWORD:
+        description: "optional — pairs with DATAFORSEO_LOGIN"
+        required: false
 
 concurrency:
   group: autoblog-refill-${{ github.repository }}
@@ -120,6 +126,8 @@ jobs:
           AUTOBLOG_DRY_DATE: ${{ needs.runway.outputs.dry_date }}
           AUTOBLOG_BRANCH: autoblog/refill-${{ needs.runway.outputs.dry_date }}
           GH_TOKEN: ${{ secrets.AUTOBLOG_PAT || github.token }}
+          DATAFORSEO_LOGIN: ${{ secrets.DATAFORSEO_LOGIN }}
+          DATAFORSEO_PASSWORD: ${{ secrets.DATAFORSEO_PASSWORD }}
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_code_oauth_token: ${{ secrets.ANTHROPIC_API_KEY == '' && secrets.CLAUDE_CODE_OAUTH_TOKEN || '' }}

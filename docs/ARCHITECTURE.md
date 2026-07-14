@@ -45,6 +45,11 @@ Reusable workflow `refill.yml`, two jobs:
      ratio, seasonal lead time, web-search SERP-gap recon for the highest-stakes
      topics (every calendar row records the information-gain angle). Related links
      may only point to posts already live or earlier in the same batch.
+     `scripts/keywords.py vet` (DataForSEO, optional) prices every candidate's
+     real search volume / difficulty / intent for pennies — dead topics dropped,
+     slots ranked volume×ease, results cached in `autoblog/keywords-cache.json`.
+     No credentials or no balance → loud SKIPPED banner, heuristic fallback,
+     never blocks a refill.
    - **P2 Write**: parallel writer subagents (~5 posts each) on the best model,
      from a writer spec instantiated with the site's voice/audience/CTA. Idempotent:
      a file is complete only if it ends with the CTA snippet; resume writes only

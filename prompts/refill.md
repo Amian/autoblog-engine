@@ -48,10 +48,13 @@ date), `AUTOBLOG_BRANCH` (branch to work on).
 ## Phase 1 — Research → calendar
 
 Follow `$AUTOBLOG_ENGINE_DIR/prompts/topic-method.md` using `editorial.archetypes` as the
-topic territory. Produce a calendar table — one row per post: date, title, slug,
-priority keyword, cluster, search intent, 3–4 assigned related-guide links, 2–4
-must-cover bullets (including the SERP-gap/information-gain angle for researched
-topics) — plus 3 reserve topics as fact-check replacements.
+topic territory — including its DataForSEO vet step (`scripts/keywords.py vet`),
+which turns the candidate pool into a data-ranked calendar for pennies (results
+cache in `autoblog/keywords-cache.json`; a SKIPPED vet degrades to heuristics,
+never blocks). Produce a calendar table — one row per post: date, title, slug,
+priority keyword, volume, kd, cluster, search intent, 3–4 assigned related-guide
+links, 2–4 must-cover bullets (including the SERP-gap/information-gain angle for
+researched topics) — plus 3 reserve topics as fact-check replacements.
 
 Hard rules: no intent overlap with any existing slug or title; about
 `editorial.commercialPostsPerWeek` commercial posts per week, informational the rest;
@@ -114,15 +117,18 @@ Dupcheck must exit 0 — a failure means real near-duplication: replace the offe
    list (replace the weakest link if the list is at 4; never self-link). This is why
    new posts don't rank as orphans.
 2. Update `autoblog/ledger.json`: append every new topic (`status: "scheduled"`,
-   with slug/keyword/cluster/date), move used candidates out of `candidates`, record
-   rejected topics under `rejected` with reasons, refresh `generated_at`.
+   with slug/keyword/cluster/date — plus `volume`/`kd` when the vet ran), move used
+   candidates out of `candidates`, record rejected topics under `rejected` with
+   reasons (`"dead keyword (vol 0)"` beats `"weak"`), refresh `generated_at`.
 3. Run the gate scripts once yourself and fix anything they flag (so the branch is
    already clean before it leaves you):
    `python3 $AUTOBLOG_ENGINE_DIR/scripts/validate.py --config $AUTOBLOG_CONFIG --scope future`
    and `python3 $AUTOBLOG_ENGINE_DIR/scripts/dupcheck.py --config $AUTOBLOG_CONFIG`.
 4. Write `autoblog/pr-body-<first-date>.md` on the branch — the PR description the
-   harness will use: the calendar table, fact-check corrections applied (what changed
-   and why), topics replaced/rejected, and **the date the queue runs dry again**.
+   harness will use: the calendar table, a **keyword-data line** (`validated via
+   DataForSEO ($x.xx spent)` or `heuristic — <skip reason>`), fact-check corrections
+   applied (what changed and why), topics replaced/rejected, and **the date the
+   queue runs dry again**.
 5. Remove `tmp/` artifacts. Commit everything (posts, images, calendar, pr-body,
    ledger, sibling edits) with message
    `autoblog: refill <first-date>..<last-date> (<n> posts)` and push the branch.

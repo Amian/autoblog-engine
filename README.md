@@ -32,7 +32,7 @@ seed `autoblog/ledger.json`, copy the 3 caller workflows from
 ```
 .github/workflows/   reusable workflows (refill, gates, watchdog, audit, publish)
 prompts/             instructions the CI agent follows (refill, audit, onboard, …)
-scripts/             stdlib Python: runway, validate, dupcheck, linkcheck, hero, ledger
+scripts/             stdlib Python: runway, validate, dupcheck, linkcheck, hero, ledger, keywords (DataForSEO)
 schema/              JSON Schema for autoblog.config.json
 caller-templates/    thin workflow files copied into site repos
 docs/                plan + reference documentation
