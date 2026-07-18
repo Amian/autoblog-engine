@@ -137,9 +137,16 @@ Dupcheck must exit 0 — a failure means real near-duplication: replace the offe
 ## Phase 6 — Ship
 
 1. **Reverse-link pass**: for each new post, find its closest older cluster-sibling
-   already live and add one link to the new post in that sibling's related-guides
+   already live and plan one link to the new post in that sibling's related-guides
    list (replace the weakest link if the list is at 4; never self-link). This is why
-   new posts don't rank as orphans.
+   new posts don't rank as orphans. TIMING RULE (hard): a live/published post may
+   only carry links to posts that are ALREADY live — a link to a future-dated queue
+   post 404s on every build until the target publishes and fails the site's SEO
+   gate. So: apply the link NOW only if the new post's date has already arrived;
+   otherwise record it in the ledger under `pending_reverse_links`
+   (`[{"from": "<sibling-slug>", "to": "<new-slug>", "after": "<publish-date>"}]`).
+   At the START of every reverse-link pass, first apply + clear any
+   `pending_reverse_links` whose `after` date has passed.
 2. Update `autoblog/ledger.json`: append every new topic (`status: "scheduled"`,
    with slug/keyword/cluster/date — plus `volume`/`kd` when the vet ran), move used
    candidates out of `candidates`, record rejected topics under `rejected` with
