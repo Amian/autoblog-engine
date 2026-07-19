@@ -39,6 +39,8 @@ Constant fields (must equal these values verbatim):
   search engines lift. It must stand alone out of context.
 - Plain, confident, specific prose. No fluff, no exclamation marks, no rhetorical
   questions as headers. Complete sentences.
+- Never use em dashes (—). They read as AI-generated. Use a comma, colon, period, or
+  parentheses; recast the sentence if needed. (En dashes in numeric ranges are fine.)
 - Never use these phrases (case-insensitive): {{BANNED_PHRASES}}
 - Markdown only. No HTML. No external links — internal links only, and ONLY the
   related-guide links assigned in your calendar row (never link a post to itself).
