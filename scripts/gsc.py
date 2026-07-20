@@ -33,6 +33,12 @@ sys.path.insert(0, str(Path(__file__).parent))
 from _common import iter_posts, load_config, today, url_for  # stdlib-only helpers
 
 DEFAULT_KEY = "/Users/anum/Development/AntiqueHybrid/play-service-account.json"
+# Portfolio sites were verified by different service accounts over time (the older
+# AntiqueHybrid key owns trystampo/peakspotter/identifyantiques; the shared factory
+# key owns the 2026-07 sites). Try every key we have before declaring "no grant".
+FALLBACK_KEYS = [
+    "/Users/anum/.config/google-play/play-console-api.json",
+]
 SCOPE = "https://www.googleapis.com/auth/webmasters.readonly"
 CANDIDATE_PYTHONS = [
     os.environ.get("GSC_PYTHON", ""),
@@ -68,11 +74,21 @@ def _session(key_path: str):
     return AuthorizedSession(creds), creds.service_account_email
 
 
+def resolve_keys(args) -> list[str]:
+    """Every usable key, most-specific first. --key (or $GSC_CREDENTIALS) wins but does
+    not suppress the others: a property may be granted to any one of our accounts."""
+    keys: list[str] = []
+    cands = [getattr(args, "key", None), os.environ.get("GSC_CREDENTIALS"), DEFAULT_KEY, *FALLBACK_KEYS]
+    for cand in cands:
+        if cand and Path(cand).is_file() and cand not in keys:
+            keys.append(cand)
+    if not keys:
+        raise Skip("no service-account key (pass --key, set $GSC_CREDENTIALS, or place the default)")
+    return keys
+
+
 def resolve_key(args) -> str:
-    for cand in (getattr(args, "key", None), os.environ.get("GSC_CREDENTIALS"), DEFAULT_KEY):
-        if cand and Path(cand).is_file():
-            return cand
-    raise Skip("no service-account key (pass --key, set $GSC_CREDENTIALS, or place the default)")
+    return resolve_keys(args)[0]
 
 
 def list_sites(sess) -> list[dict]:
@@ -123,13 +139,15 @@ def classify_page(row: dict, published: date | None, now: date) -> str:
 
 
 def cmd_sites(args) -> int:
-    sess, sa = _session(resolve_key(args))
-    sites = list_sites(sess)
-    print(f"service account: {sa}")
-    for s in sites:
-        print(f"  {s['siteUrl']:42} {s.get('permissionLevel')}")
-    print(json.dumps({"service_account": sa, "sites": sites}, indent=1)
-          ) if getattr(args, "json", False) else None
+    out = []
+    for key in resolve_keys(args):
+        sess, sa = _session(key)
+        sites = list_sites(sess)
+        print(f"service account: {sa}")
+        for s in sites:
+            print(f"  {s['siteUrl']:42} {s.get('permissionLevel')}")
+        out.append({"service_account": sa, "sites": sites})
+    print(json.dumps({"accounts": out}, indent=1)) if getattr(args, "json", False) else None
     return 0
 
 
@@ -140,10 +158,19 @@ def cmd_report(args) -> int:
     if not site_url:
         raise Skip(f"config {args.config} has no site.url")
 
-    sess, sa = _session(resolve_key(args))
-    prop = match_property(list_sites(sess), site_url)
+    sess = prop = None
+    tried = []
+    for key in resolve_keys(args):
+        cand_sess, sa = _session(key)
+        tried.append(sa)
+        cand_prop = match_property(list_sites(cand_sess), site_url)
+        if cand_prop:
+            sess, sa_used, prop = cand_sess, sa, cand_prop
+            break
     if not prop:
-        raise Skip(f"no GSC property matches {site_url} for {sa} — check the grant on that property")
+        raise Skip(f"no GSC property matches {site_url} for any of {', '.join(tried)} "
+                   f"— check the grant on that property")
+    sa = sa_used
 
     end = today()
     start = end - timedelta(days=args.days)
