@@ -30,7 +30,15 @@ def main() -> int:
 
     cfg = load_config(args.config)
     repo = Path(args.repo)
-    posts = [p for p in iter_posts(cfg, repo) if p.date != p.date.min]
+    # Only posts that can actually publish count as runway: the site's blog
+    # loader (packages/theme/src/lib/blog.ts) ships a post only when
+    # review_state == "fact-checked", so a draft (e.g. a far-future template
+    # post) must never inflate the queue gauge.
+    posts = [
+        p
+        for p in iter_posts(cfg, repo)
+        if p.date != p.date.min and p.fm.get("review_state") == "fact-checked"
+    ]
     now = today()
 
     if not posts:
