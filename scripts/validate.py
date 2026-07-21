@@ -16,6 +16,13 @@ Checks per post:
 Corpus-wide:
   - at most cadence.postsPerDayMax posts per date
   - at most cadence.postsPerWeek posts per ISO week (future posts only)
+    Set the optional cadence.enforceFrom (ISO date) to the date the current
+    cadence policy took effect. Queued posts dated before it were scheduled
+    under an older policy, so they downgrade to warnings instead of errors:
+    tightening a site's cadence should not permanently red-light the gate over
+    content that is already reviewed and merged. A week is only downgraded when
+    EVERY post in it predates enforceFrom, so a new batch cannot hide behind old
+    content. Unset (the default) enforces everywhere.
   - unique slugs
 
 Exit 0 = clean (warnings allowed), 1 = errors found, 2 = config/setup problem.
@@ -145,12 +152,29 @@ def main() -> int:
     by_date: dict = {}
     for p in posts:
         by_date.setdefault(p.date, []).append(p.path.name)
+    # cadence.enforceFrom (optional, ISO date): the date the CURRENT cadence policy
+    # took effect. Posts scheduled before it were queued under an older policy, so
+    # judging them by today's caps reports a violation nobody can act on without
+    # rewriting already-reviewed content. Those are reported as warnings instead.
+    # Unset (the default) means enforce everywhere, so existing sites are unchanged.
+    enforce_from = cfg["cadence"].get("enforceFrom")
+    if enforce_from:
+        enforce_from = parse_date(enforce_from)
+
+    def _cadence_grandfathered(d) -> bool:
+        return enforce_from is not None and d < enforce_from
+
     cap = cfg["cadence"]["postsPerDayMax"]
     for d, names in sorted(by_date.items()):
         # the day cap is queue discipline — history is grandfathered
         if d > now and len(names) > cap:
-            print(f"ERROR {d}: {len(names)} posts on one day (max {cap}): {', '.join(names)}")
-            total_errors += 1
+            if _cadence_grandfathered(d):
+                print(f"WARN {d}: {len(names)} posts on one day (max {cap}), "
+                      f"queued before cadence.enforceFrom {enforce_from}: {', '.join(names)}")
+                total_warnings += 1
+            else:
+                print(f"ERROR {d}: {len(names)} posts on one day (max {cap}): {', '.join(names)}")
+                total_errors += 1
     week_cap = cfg["cadence"]["postsPerWeek"]
     by_week: dict = {}
     for p in posts:
@@ -159,9 +183,20 @@ def main() -> int:
     for wk, names in sorted(by_week.items()):
         # the week cap is queue discipline too — history is grandfathered
         if len(names) > week_cap:
-            print(f"ERROR week {wk[0]}-W{wk[1]:02d}: {len(names)} posts in one week "
-                  f"(max {week_cap}): {', '.join(sorted(names))}")
-            total_errors += 1
+            # a week is grandfathered only if EVERY post in it predates enforceFrom;
+            # a week that straddles the policy start still errors, so a new batch can
+            # never hide behind old content.
+            week_dates = [p.date for p in posts
+                          if p.date > now and p.date.isocalendar()[:2] == wk]
+            if week_dates and all(_cadence_grandfathered(d) for d in week_dates):
+                print(f"WARN week {wk[0]}-W{wk[1]:02d}: {len(names)} posts in one week "
+                      f"(max {week_cap}), queued before cadence.enforceFrom {enforce_from}: "
+                      f"{', '.join(sorted(names))}")
+                total_warnings += 1
+            else:
+                print(f"ERROR week {wk[0]}-W{wk[1]:02d}: {len(names)} posts in one week "
+                      f"(max {week_cap}): {', '.join(sorted(names))}")
+                total_errors += 1
     seen: dict = {}
     for p in posts:
         if p.slug and p.slug in seen:
