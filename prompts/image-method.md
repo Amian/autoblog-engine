@@ -8,6 +8,13 @@ floor so the pipeline never blocks. All image config is under `images.ai` in
 
 **Non-negotiable: every image is reviewed; anything short of excellent is regenerated.**
 
+**Before generating: consider a real photo instead.** Some scenes — a shopper at a shelf,
+hands operating a phone, a desk of real collectibles — are ones AI reliably renders wrong
+or blank regardless of prompt craft. For those, `tools/source-photo.mjs` in the site's
+monorepo pulls real, licensed stock photos (Pexels/Unsplash) to review and place instead
+of generating. See `docs/BLOG-IMAGES.md` → "When to reach for a real photo instead of AI"
+for the full method and the credit-rendering mechanics. Use AI for everything else.
+
 ## 1. Build one prompt per new post
 
 For each new post, write an image prompt that:
