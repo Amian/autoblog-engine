@@ -24,6 +24,14 @@ date), `AUTOBLOG_BRANCH` (branch to work on).
   what is missing; never rewrite complete files.
 - **Fact-checkers report, you fix.** Checker subagents never edit files. You apply
   fixes yourself — you are the second pair of eyes on every finding.
+- **Never end a turn on work you believe is running elsewhere.** Do not start
+  background shell loops, and do not treat any step as "kicked off, will be pinged when
+  done". The only subagents in this pipeline are the report-only checkers in Phase 4,
+  and you must read and act on their reports in the same turn you receive them. Every
+  other phase you do yourself, in your own context, finishing each unit of work before
+  starting the next. Where a step writes files (posts, images), confirm it on disk with
+  `ls` and a size check before moving on: an agent's own "N of M complete" is very often
+  0 of M.
 - **Unresolved factual doubt → replace the topic** with a backup from the calendar's
   reserve list. A one-day gap beats publishing something wrong under the brand.
 - **Honor every `editorial.hardRules` entry verbatim.**
@@ -74,9 +82,19 @@ Do not open a PR.
    contract from `content.frontmatter`, `ctaSnippet`, word count, banned phrases,
    hard rules) and append the linkable-post list (slug — title of every existing
    post). Save as `tmp/writer-spec.md` (git-ignored or removed before commit).
-2. Spawn parallel writer subagents (~5 posts each, best model). Each prompt contains:
-   the spec path, its assigned calendar rows verbatim, and the resume rule (skip
-   files that already exist and end with the CTA snippet).
+2. **Write the posts yourself, one at a time, in your own context**, working down the
+   calendar in date order and following that spec. After every 2 posts, `git add` +
+   commit + push. Apply the resume rule as you go: skip any file that already exists
+   and ends with the CTA snippet.
+
+   **Do NOT spawn writer subagents for this phase.** Fanning the writing out has
+   stalled this pipeline four times (stampo 2026-07-22, gempeek 2026-07-27, rotino
+   2026-09-11, chartix 2026-09-16), twice costing several hundred thousand tokens: the
+   dispatching agent ends its turn waiting to be "notified", never resumes, and its
+   orphaned children keep writing over the files whoever takes over has re-commissioned.
+   Sequential self-writing plus the 2-post checkpoint is slower per turn and strictly
+   more reliable, because a usage-limit kill loses at most one post and the next daily
+   run resumes from the branch.
 
 ## Phase 3 — Validate (deterministic gates)
 
@@ -127,6 +145,12 @@ generate a real photographic hero per post via the free-image (ChatGPT) skill,
 deterministic template only when no excellent image can be produced. If
 `images.ai.enabled` is false, just run the template generator:
 `python3 $AUTOBLOG_ENGINE_DIR/scripts/hero.py generate --config $AUTOBLOG_CONFIG`.
+
+Generate images ONE AT A TIME and `ls` each file (existence and non-trivial size)
+before starting the next. On 2026-09-11 a rotino run reported "3 of 9 complete" and
+exited with zero files on disk: a stale Chrome process was holding the free-image
+profile lock, so every call failed async and the agent never saw it. Checkpoint-commit
+every 2 images.
 
 Then confirm no near-duplicates:
 ```sh
