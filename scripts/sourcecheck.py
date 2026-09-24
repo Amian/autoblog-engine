@@ -52,6 +52,40 @@ def extract_url(source: str) -> str | None:
     return url or None
 
 
+def _path_of(u: str) -> str:
+    rest = u.split("://", 1)[-1]
+    slash = rest.find("/")
+    path = rest[slash:] if slash != -1 else "/"
+    return path.split("#", 1)[0].split("?", 1)[0].rstrip("/") or "/"
+
+
+def _host_of(u: str) -> str:
+    return u.split("://", 1)[-1].split("/", 1)[0].lower().removeprefix("www.")
+
+
+def redirect_drift(requested: str, final: str) -> str | None:
+    """Detect a citation that now lands somewhere that cannot support it.
+
+    urlopen follows redirects silently and reports the FINAL page's status, so a
+    retired page that 301s to a site homepage returns a clean 200 and sails through
+    the gate while the claim it was cited for is no longer anywhere on the page.
+    Two such citations shipped on the cyllo site before a human spotted them.
+
+    Deliberately narrow, because a false positive here blocks an auto-merge queue:
+    only a cited DEEP path that lands on a ROOT path counts as drift. Scheme bumps,
+    trailing slashes, www toggles and deep-to-deep moves (real content relocations)
+    all pass.
+    """
+    if not final or final == requested:
+        return None
+    want, got = _path_of(requested), _path_of(final)
+    if want == "/" or got != "/":
+        return None
+    same_site = _host_of(requested) == _host_of(final)
+    where = "its own homepage" if same_site else f"the homepage of {_host_of(final)}"
+    return f"cited page is gone — now redirects to {where} ({final})"
+
+
 def check_url(url: str, timeout=15) -> tuple[str, int | None, str]:
     """Return (status, http_code, detail). status in ok|blocked|dead."""
     host = url.split("://", 1)[-1].split("/", 1)[0].lower()
@@ -61,6 +95,9 @@ def check_url(url: str, timeout=15) -> tuple[str, int | None, str]:
             try:
                 req = urllib.request.Request(url, method=method, headers={"User-Agent": UA})
                 with urllib.request.urlopen(req, timeout=timeout) as resp:
+                    drift = redirect_drift(url, resp.url)
+                    if drift:
+                        return "drifted", resp.status, drift
                     return "ok", resp.status, ""
             except urllib.error.HTTPError as e:
                 if e.code in (403, 405, 429) and method == "HEAD":
@@ -101,7 +138,7 @@ def main() -> int:
     cfg = load_config(args.config)
     posts = [p for p in iter_posts(cfg, Path(args.repo)) if in_scope(p, args.scope)]
 
-    failures, blocked, checked, seen = [], [], 0, {}
+    failures, blocked, drifted, checked, seen = [], [], [], 0, {}
     report = []
     for post in posts:
         sources = post.fm.get("sources") or []
@@ -120,22 +157,27 @@ def main() -> int:
                 failures.append((post.slug, url, f"HTTP {code} {detail}".strip()))
             elif status == "blocked":
                 blocked.append((post.slug, url, f"HTTP {code} {detail}".strip()))
+            elif status == "drifted":
+                drifted.append((post.slug, url, detail))
 
     for slug, url, why in failures:
         report.append(f"DEAD    {slug}: {url}  ({why})")
+    for slug, url, why in drifted:
+        report.append(f"DRIFTED {slug}: {url}  ({why}) — re-source the claim or cite the new page")
     for slug, url, why in blocked:
         report.append(f"BLOCKED {slug}: {url}  ({why}) — likely the host, eyeball it")
 
     if args.json:
         print(json.dumps({"checked_urls": checked, "posts": len(posts),
                           "dead": [{"slug": s, "url": u, "why": w} for s, u, w in failures],
+                          "drifted": [{"slug": s, "url": u, "why": w} for s, u, w in drifted],
                           "blocked": [{"slug": s, "url": u, "why": w} for s, u, w in blocked]}, indent=1))
     else:
         print("\n".join(report) if report else "all sources resolved ✓")
         print(f"\n{checked} unique URLs across {len(posts)} posts · "
-              f"{len(failures)} dead · {len(blocked)} blocked(host)", file=sys.stderr)
+              f"{len(failures)} dead · {len(drifted)} drifted · {len(blocked)} blocked(host)", file=sys.stderr)
 
-    if failures and not args.warn_only:
+    if (failures or drifted) and not args.warn_only:
         return 1
     return 0
 
